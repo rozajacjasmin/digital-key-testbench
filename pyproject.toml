@@ -1,0 +1,12 @@
+[project]
+name = "digital-key-testbench"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "smoke: fast, critical happy-path tests",
+    "negative: tests that check rejection and error handling",
+]
