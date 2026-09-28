@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from digital_key import KeyManager
+from digital_key import DigitalKey, KeyManager
 
 
 # --- Session scope: created ONCE for the whole test run -------------------
@@ -44,3 +44,17 @@ def revoked_key(key_manager, vehicle_ids):
 def future_time():
     """A point in time two years from now, used to test expiry."""
     return datetime.now(timezone.utc) + timedelta(days=730)
+
+@pytest.fixture
+def nbr_of_members():
+    return 3
+
+# Exercise 4: create a new fixture in conftest.py called "family_keys"
+# that registers 3 keys (one per family member) on the same vehicle.
+# Then write a test that revokes one and checks the other two still work.
+@pytest.fixture
+def family_keys(key_manager, vehicle_ids, nbr_of_members) -> list[DigitalKey]:
+    return [
+        key_manager.register(f"KEY-{i}", vehicle_ids[0], owner=f"Member {i}")
+        for i in range(1, nbr_of_members + 1)
+    ]

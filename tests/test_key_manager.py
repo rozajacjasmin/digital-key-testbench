@@ -2,7 +2,7 @@
 
 import pytest
 
-from digital_key import KeyError_, UnlockResult
+from digital_key import KeyError_, KeyManager, UnlockResult
 
 
 # ---------------------------------------------------------------------------
@@ -84,25 +84,35 @@ def test_invalid_registration_raises(key_manager, key_id, vehicle_id, valid_days
 # ---------------------------------------------------------------------------
 # 5. YOUR EXERCISES: remove the skip marker and write the test body
 # ---------------------------------------------------------------------------
-@pytest.mark.skip(reason="Exercise 1: write this test")
+# @pytest.mark.skip(reason="Exercise 1: write this test")
 def test_invalid_command_raises(key_manager, phone_key):
-    # Hint: authorize() with command="self_destruct" should raise KeyError_
-    ...
+    with pytest.raises(KeyError_, match="invalid command"):
+        key_manager.authorize(phone_key.key_id, phone_key.vehicle_id, command="self_destruct")
 
 
-@pytest.mark.skip(reason="Exercise 2: write this test")
 def test_revoking_unknown_key_raises(key_manager):
-    # Hint: use pytest.raises with match="not found"
-    ...
+    with pytest.raises(KeyError_, match="not found"):
+        key_manager.revoke("NO_SUCH_KEY")
 
 
-@pytest.mark.skip(reason="Exercise 3: write this test")
 def test_keys_for_vehicle_returns_only_that_vehicles_keys(key_manager, vehicle_ids):
-    # Hint: register 2 keys on vehicle_ids[0] and 1 key on vehicle_ids[1],
-    # then check keys_for_vehicle(vehicle_ids[0]) returns exactly 2 keys.
-    ...
+    key_manager.register("KEY-1", vehicle_ids[0], owner="Jasmin")
+    key_manager.register("KEY-2", vehicle_ids[0], owner="Partner")
+    key_manager.register("KEY-3", vehicle_ids[1], owner="Jasmin")
+    result = key_manager.keys_for_vehicle(vehicle_ids[0])
+
+    assert len(result) == 2
+
+    for key in result:
+        assert key.vehicle_id == vehicle_ids[0]
 
 
-# Exercise 4: create a new fixture in conftest.py called "family_keys"
-# that registers 3 keys (one per family member) on the same vehicle.
-# Then write a test that revokes one and checks the other two still work.
+def test_revoking_one_family_key_does_not_affect_others(key_manager, family_keys):
+    revoked_key = family_keys[0]
+    key_manager.revoke(revoked_key.key_id)
+
+    assert key_manager.authorize(revoked_key.key_id, revoked_key.vehicle_id) == UnlockResult.REVOKED
+
+    for key in family_keys[1:]:
+        assert key_manager.authorize(key.key_id, key.vehicle_id) == UnlockResult.GRANTED
+

@@ -1,0 +1,20 @@
+// Day 2, part B: the message a phone sends to the vehicle cloud.
+// Protobuf turns this into small binary bytes instead of JSON text.
+
+syntax = "proto3";
+
+package digitalkey;
+
+enum Command {
+  COMMAND_UNSPECIFIED = 0;   // proto3: the first enum value must be 0
+  UNLOCK = 1;
+  LOCK = 2;
+  OPEN_TRUNK = 3;
+}
+
+message UnlockRequest {
+  string vehicle_id = 1;     // the numbers are field IDs, NOT values
+  string key_id = 2;
+  Command command = 3;
+  int64 timestamp_ms = 4;
+}
