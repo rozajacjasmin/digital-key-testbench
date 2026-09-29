@@ -11,6 +11,8 @@ import pytest
 
 pb = pytest.importorskip("digital_key.unlock_pb2", reason="run the protoc command first")
 
+from digital_key.validation import validate  # noqa: E402 (must come after importorskip)
+
 
 def make_request():
     return pb.UnlockRequest(
@@ -63,3 +65,19 @@ def test_garbage_bytes_are_rejected():
 # request.command == pb.COMMAND_UNSPECIFIED or key_id is empty,
 # and write two tests for it (one valid, one invalid).
 # As a tester: why is it dangerous that proto3 silently fills in defaults?
+def test_valid_request():
+    validate(make_request())
+
+
+def test_request_without_command_is_rejected():
+    msg = pb.UnlockRequest(vehicle_id="R1S-001", key_id="PHONE-JASMIN")  # no command
+
+    with pytest.raises(ValueError, match="command"):
+        validate(msg)
+
+
+def test_request_without_key_id_is_rejected():
+    msg = pb.UnlockRequest(vehicle_id="R1S-001", command=pb.UNLOCK)  # no command
+
+    with pytest.raises(ValueError, match="key_id"):
+        validate(msg)

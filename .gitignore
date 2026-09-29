@@ -2,3 +2,4 @@
 __pycache__/
 .pytest_cache/
 *.pyc
+src/digital_key/unlock_pb2.py
