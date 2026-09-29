@@ -148,26 +148,65 @@ def test_key_lifecycle_register_use_revoke(client):
 # ---------------------------------------------------------------------------
 # 5. YOUR EXERCISES: remove the skip line and write the test body
 # ---------------------------------------------------------------------------
-@pytest.mark.skip(reason="Exercise 1")
 def test_revoking_unknown_key_returns_404(client):
-    # Hint: client.delete("/keys/NO-SUCH-KEY", headers=AUTH)
-    ...
+    response = client.delete("/keys/NO-SUCH-KEY", headers=AUTH)
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"]
 
 
-@pytest.mark.skip(reason="Exercise 2")
 def test_invalid_command_returns_400(client, registered_key):
-    # Hint: send command "self_destruct". Also check "invalid command" is in the detail text.
-    ...
+    vehicle = registered_key["vehicle_id"]
+    key_id = registered_key["key_id"]
+    
+    response = client.post(
+        f"/vehicles/{vehicle}/commands",
+        json={"key_id": key_id, "command": "self_destruct"},
+        headers=AUTH
+    )
+
+    assert response.status_code == 400
+    assert "invalid command" in response.json()["detail"]
 
 
-@pytest.mark.skip(reason="Exercise 3")
 def test_key_cannot_unlock_other_vehicle(client, registered_key):
     # Hint: send the command to "R2-003" instead. Expect 403 and result "wrong_vehicle".
-    ...
+    key_id = registered_key["key_id"]
+    vehicle_id = "R2-003"
+
+    assert registered_key["vehicle_id"] != vehicle_id, "precondition: key must belong to another car"
+
+    response = client.post(
+        f"/vehicles/{vehicle_id}/commands",
+        json={"key_id": key_id, "command": "unlock"},
+        headers=AUTH,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["result"] == "wrong_vehicle"
 
 
-# Exercise 4: parametrize a test over the 3 valid commands ("unlock", "lock",
-# "open_trunk") and check that each one returns 200 and "granted".
+@pytest.mark.parametrize("command", ["unlock", "lock", "open_trunk"])
+def test_all_valid_commands_are_granted(client, registered_key, command):
+    vehicle = registered_key["vehicle_id"]
+    key_id = registered_key["key_id"]
+    
+    response = client.post(
+        f"/vehicles/{vehicle}/commands",
+        json={"key_id": key_id, "command": command},
+        headers=AUTH,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["result"] == "granted"
+
 
 # Exercise 5: add a test that GET /vehicles/{id}/keys without a token returns 401.
 # Question to think about: should /health need a token? Why or why not?
+def test_list_keys_without_token_returns_401(client, registered_key):
+    vehicle = registered_key["vehicle_id"]
+    
+    response = client.get(f"/vehicles/{vehicle}/keys")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "invalid or missing API token"
