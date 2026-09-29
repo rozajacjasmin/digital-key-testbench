@@ -7,18 +7,17 @@ practical: after it, every `git push` runs your tests automatically.
 > `tests/test_events.py`) don't exist yet. They get created when you start Day 3.
 > Part B you build yourself from scratch.
 
-## 0. Before you start: finish Day 2
+## 0. Before you start
 
-- **Day 2 Part B (protobuf)** isn't done yet. Do it first (about 1 h, see `DAY2.md`).
-- Make sure everything is green and pushed:
+Day 1 and Day 2 are done. Check that everything is still green and pushed:
 
 ```bash
 source .venv/Scripts/activate
-pytest -v
-git add .
-git commit -m "Day 2: protobuf"
-git push
+pytest -v          # 42 passed
+git status         # nothing to commit
 ```
+
+Keep `LESSONS_LEARNED.md` open. Add to it when something today surprises you.
 
 ---
 
@@ -137,7 +136,16 @@ jobs:
 ```
 
 Read it line by line. Can you say what each step does?
-Why is the `protoc` step needed? (Hint: is `unlock_pb2.py` in Git?)
+Why is the `protoc` step needed? (Hint: look at your `.gitignore`.)
+
+**Line endings:** the CI server runs Linux (LF line endings) and you're on
+Windows (CRLF), which is what the `LF will be replaced by CRLF` warnings were
+about. To make the repo consistent for everyone, add a `.gitattributes` file in
+the project root with this line:
+
+```
+* text=auto eol=lf
+```
 
 ### B4. Push and watch it run
 
