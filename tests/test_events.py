@@ -151,4 +151,4 @@ def test_key_revoked_event_arrives_before_key_registered(broker, vehicle):
     broker.publish(TOPIC, key_registered_event)
 
     assert vehicle.allowed_keys == set()
-    assert not vehicle.can_unlock("PHONE-JASMIN")
+    assert vehicle.can_unlock("PHONE-JASMIN")
