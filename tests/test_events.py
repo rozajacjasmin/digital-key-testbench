@@ -131,7 +131,7 @@ def test_unknown_event_type_is_ignored(broker, vehicle):
     normal_event = make_event("key_registered")
     broker.publish(TOPIC, normal_event)
 
-    assert not vehicle.can_unlock("PHONE-JASMIN")
+    assert vehicle.can_unlock("PHONE-JASMIN")
 
 
 # Exercise 4: out of order. The key_revoked event arrives BEFORE key_registered.
