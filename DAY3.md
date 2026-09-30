@@ -3,9 +3,8 @@
 Around 3–4 hours. Part A is the most important. Part B is short but very
 practical: after it, every `git push` runs your tests automatically.
 
-> **Note:** the code files for Part A (`src/digital_key/events.py` and
-> `tests/test_events.py`) don't exist yet. They get created when you start Day 3.
-> Part B you build yourself from scratch.
+> **New files:** `src/digital_key/events.py` (the code) and `tests/test_events.py`
+> (the tests) for Part A. Part B you build yourself from scratch.
 
 ## 0. Before you start
 
