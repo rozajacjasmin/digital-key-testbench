@@ -1,5 +1,8 @@
 # Digital Key Test Bench — Day 1: Python + Pytest
 
+[![tests](https://github.com/rozajacjasmin/digital-key-testbench/actions/workflows/tests.yml/badge.svg)](https://github.com/rozajacjasmin/digital-key-testbench/actions/workflows/tests.yml)
+
+
 A small, simplified "digital key" system (register keys, revoke them, authorize
 unlock) with a Pytest suite. The following days add a REST API, protobuf,
 Pub/Sub, Appium and CI on top of it.
