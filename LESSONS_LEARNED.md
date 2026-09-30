@@ -1,6 +1,6 @@
 # Lessons learned
 
-Things worth remembering for work, collected while doing the Day 1 and Day 2
+Things worth remembering for work, collected while doing the Day 1–3
 exercises. Each section ends with a line you can say out loud to a colleague.
 
 ---
@@ -220,3 +220,109 @@ Tests **use** the code; they don't contain it.
   they show how the code is *meant* to be used.
 - **Style that linters check:** two blank lines between top-level functions,
   trailing commas in multi-line calls, one quote style (`"`).
+
+---
+
+## 8. Event-driven systems (Pub/Sub)
+
+Publishers send events to a **topic**; subscribers receive them **later**.
+They never talk directly. Three things make this hard to test:
+
+| Problem | What the code must do | How to test it |
+|---|---|---|
+| **Duplicates** (at-least-once delivery) | Be **idempotent**, e.g. skip a `message_id` it has already handled | Publish the **same event object** twice |
+| **Out of order** | End up in the right state anyway | Publish the events in the "wrong" order |
+| **Delay** | (nothing, it's just how brokers work) | Wait for a **condition**, not a fixed time |
+
+### A duplicate means the same `message_id`
+Two events with the same content but different ids are two different messages.
+Two different messages (register and revoke) never share an id. Giving them the
+same id made my out-of-order test pass for the wrong reason: the second one was
+dropped as a duplicate.
+
+### Check that something *happened*, not only that nothing crashed
+My first duplicate test passed with `processed_ids == []`: the event went to the
+wrong vehicle and nothing was handled at all. Assert on the **effect**
+(`can_unlock(...)`) **and** on the bookkeeping (`len(processed_ids) == 1`).
+
+### One bad message must not stop the rest
+A "poison message" (unknown type, broken data) must be ignored, and the next
+normal message must still work. Test both halves.
+
+### Out of order is a design question first
+*Revoke arrives before register: should the key work?* **No.** Revoke was the
+owner's latest intention and a security action, so the system must **fail safe**
+(deny) rather than **fail open**. The code let the key work, so the test found a
+real bug. Real fixes: **tombstones** (remember revoked keys), **version/sequence
+numbers**, or sender timestamps.
+
+> **Say it at work:** "In event-driven systems I always test duplicates,
+> out-of-order delivery and poison messages, and I decide the expected
+> behavior before I write the test."
+
+---
+
+## 9. Waiting and flaky tests
+
+`time.sleep(5)` in a test is wrong in both directions:
+- **Too slow** when things are fast: it always waits 5 s (500 tests = 40+ min).
+- **Too short** when things are slow: on a busy CI server it fails at random.
+
+A test that sometimes passes and sometimes fails, without any code change, is
+**flaky**. Flaky tests make people ignore red builds, and then real bugs slip through.
+
+Use a polling helper instead: check the condition every few ms and return as
+soon as it's true, with a generous timeout.
+
+```python
+wait_until(lambda: vehicle.can_unlock("PHONE-JASMIN"))
+```
+
+> **Say it at work:** "Wait for a condition, not for a fixed time."
+
+---
+
+## 10. Known bugs: `xfail`
+
+When a test correctly finds a bug that won't be fixed right away, don't delete
+it and don't change the assert. Mark it:
+
+```python
+@pytest.mark.xfail(reason="BUG-1234: revoke before register re-enables the key", strict=True)
+```
+
+- It still runs, and shows as `x` instead of red, so CI stays green.
+- `strict=True` turns it **red** if it suddenly passes, so whoever fixes the bug
+  remembers to remove the marker.
+- While it's marked, it protects nothing. Changing an assert inside it had no
+  visible effect, because the test was already failing.
+- A test stops at the **first** failing assert. The ones after it never run.
+
+---
+
+## 11. CI with GitHub Actions
+
+- **CI** runs every test on a clean machine on every push. It's usually where
+  you'll first see your tests fail at work.
+- **`requirements-dev.txt`** lists everything CI must install. Check it with a
+  **fresh venv** (`python -m venv .venv-check`, `pip install -r ...`, `pytest`).
+  Your own venv can hide missing packages ("works on my machine").
+- **`which python`** shows which venv is active. Check it when something is odd.
+- **Generated files** (`unlock_pb2.py`) go in `.gitignore` and are regenerated
+  in CI with a build step.
+- **Steps run top to bottom; a failing step stops the job.** Running
+  `pytest -m smoke` first means **fail fast**: quick feedback, lower CI cost,
+  shorter queues.
+- **Matrix** runs the same job on several Python versions in parallel. Always
+  **quote** versions in YAML: `["3.12", "3.13"]`. Unquoted, `3.10` becomes `3.1`.
+- **Version pins** (`actions/checkout@v4`, `ubuntu-latest`) need looking after.
+  Deprecation warnings in the Actions log are early warnings, not errors.
+- **Line endings:** Windows uses CRLF, Linux uses LF. `.gitattributes` with
+  `* text=auto eol=lf` keeps a mixed team consistent.
+- **`.gitignore`** only affects files Git isn't tracking yet. For committed files,
+  use `git rm --cached <file>`.
+- **Don't add a package just to silence a warning.** A deprecation warning isn't
+  an error. Change dependencies on purpose, in their own commit.
+
+> **Say it at work:** "I check new dependencies in a fresh environment, and I
+> put smoke tests first so the pipeline fails fast."
